@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="plan_bg">#141719</color>
+    <color name="bar_bg">#1F2328</color>
+    <color name="sub_text">#A3AAB3</color>
+    <!-- 다크 모드에서는 검정 버튼이 배경에 묻히지 않게 진회색 -->
+    <color name="button_bg">#4A525C</color>
+    <color name="accent">#D0D5DB</color>
+</resources>

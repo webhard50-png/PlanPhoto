@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="pin_orange">#F26B1D</color>
+    <color name="ink">#1F2328</color>
+    <color name="slate">#2B3138</color>
+    <color name="plan_bg">#E6E8EB</color>
+    <color name="bar_bg">#FFFFFF</color>
+    <color name="hint_bg">#E61F2328</color>
+    <color name="sub_text">#5B636D</color>
+    <color name="launcher_bg">#2B3138</color>
+    <!-- 버튼·강조색: 검정 계열 -->
+    <color name="button_bg">#1F2328</color>
+    <color name="accent">#1F2328</color>
+</resources>

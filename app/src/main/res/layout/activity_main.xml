@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bar_bg"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <ListView
+            android:id="@+id/plan_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingTop="4dp" />
+
+        <TextView
+            android:id="@+id/empty_text"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:lineSpacingExtra="6dp"
+            android:padding="32dp"
+            android:text="아직 만든 파일이 없습니다.\n\n아래 '새 파일 만들기'를 눌러 PDF 도면을 고르세요.\n카카오톡·드라이브에서 PDF를 '다음으로 열기' → 평면도 사진으로 열어도 됩니다.\n\n사진은 내장 메모리/PDFPIC 폴더에 저장됩니다."
+            android:textColor="@color/sub_text"
+            android:textSize="15sp" />
+    </FrameLayout>
+
+    <Button
+        android:id="@+id/import_button"
+        style="@style/PrimaryButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:text="새 파일 만들기" />
+</LinearLayout>
