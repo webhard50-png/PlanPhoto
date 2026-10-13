@@ -43,6 +43,7 @@ class PhotosActivity : CaptureActivity() {
         empty = findViewById(R.id.empty_text)
         coordText = findViewById(R.id.coord_text)
         findViewById<Button>(R.id.capture_button).setOnClickListener { capturePhoto(plan, pin) }
+        findViewById<Button>(R.id.album_button).setOnClickListener { pickFromAlbum(plan, pin) }
         rebuild()
     }
 

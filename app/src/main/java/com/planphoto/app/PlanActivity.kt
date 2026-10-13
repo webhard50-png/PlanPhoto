@@ -156,7 +156,7 @@ class PlanActivity : CaptureActivity(), PlanView.Listener {
                 (planView.directionPin?.dir?.let { "\n지금 " + PinMarker.dirText(it) } ?: "")
             movingPin != null -> "핀 ${movingPin!!.label}을(를) 옮길 위치를 누르세요"
             deleteMode -> "삭제할 핀을 누르세요"
-            addMode -> "핀을 놓을 위치를 누르면 바로 카메라가 열립니다"
+            addMode -> "핀을 놓을 위치를 누르세요 (놓은 뒤 촬영 또는 앨범 선택)"
             onPage == 0 -> "'+ 핀 추가'를 누르고 도면 위에 핀을 놓으세요"
             else -> "핀을 누르면 카메라 · 길게 누르면 사진 기록과 메뉴"
         }
@@ -179,8 +179,8 @@ class PlanActivity : CaptureActivity(), PlanView.Listener {
         plan.pins.add(pin)
         Repo.save(this)
         refreshPins()
-        // 핀을 놓자마자 바로 촬영
-        capturePhoto(plan, pin)
+        // 핀을 놓자마자 사진 촬영 / 앨범에서 가져오기 선택
+        choosePhotoSource(plan, pin, "핀 ${pin.label} 추가 · 사진 넣기")
     }
 
     private fun toastCoord(pin: Pin, prefix: String) {
@@ -233,27 +233,23 @@ class PlanActivity : CaptureActivity(), PlanView.Listener {
         if (planView.directionPin != null) return
         val c = PhotoProcessor.coordOf(this, plan, pin)
         val dirItem = if (pin.dir == null) "방향 표시" else "방향 조절 (${PinMarker.dirText(pin.dir!!)})"
-        val items = mutableListOf("사진 촬영", "사진 기록 보기 (${pin.photos.size}회)", dirItem, "이름 변경", "위치 이동", "삭제")
-        if (pin.dir != null) items += "방향 지우기"
+        val menu = mutableListOf<Pair<String, () -> Unit>>(
+            "사진 촬영" to { capturePhoto(plan, pin) },
+            "앨범에서 가져오기" to { pickFromAlbum(plan, pin) },
+            "사진 기록 보기 (${pin.photos.size}회)" to { openPhotos(pin) },
+            dirItem to { startDirection(pin) },
+            "이름 변경" to { renamePin(pin) },
+            "위치 이동" to {
+                movingPin = pin; addMode = false
+                planView.highlightPinId = pin.id
+                updateUi()
+            },
+            "삭제" to { confirmDeletePin(pin) },
+        )
+        if (pin.dir != null) menu += "방향 지우기" to { pin.dir = null; Repo.save(this); refreshPins() }
         AlertDialog.Builder(this)
             .setTitle("핀 ${pin.label}  ·  ${c.mainText()}")
-            .setItems(items.toTypedArray()) { _, which0 ->
-                // 방향 항목을 끼워 넣었으므로 기존 번호에 맞춰 조정
-                if (which0 == 2) { startDirection(pin); return@setItems }
-                if (which0 == 6) { pin.dir = null; Repo.save(this); refreshPins(); return@setItems }
-                val which = if (which0 > 2) which0 - 1 else which0
-                when (which) {
-                    0 -> capturePhoto(plan, pin)
-                    1 -> openPhotos(pin)
-                    2 -> renamePin(pin)
-                    3 -> {
-                        movingPin = pin; addMode = false
-                        planView.highlightPinId = pin.id
-                        updateUi()
-                    }
-                    4 -> confirmDeletePin(pin)
-                }
-            }
+            .setItems(menu.map { it.first }.toTypedArray()) { _, which -> menu[which].second() }
             .show()
     }
 

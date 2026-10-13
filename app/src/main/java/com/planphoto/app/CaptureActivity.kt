@@ -4,7 +4,9 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -41,11 +43,48 @@ abstract class CaptureActivity : AppCompatActivity() {
         onSystemCaptureResult(ok)
     }
 
+    // 앨범에서 가져올 핀
+    private var albumPlanId: String? = null
+    private var albumPinId: String? = null
+    private val pickAlbum = registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(50)) { uris ->
+        val plan = Repo.plan(this, albumPlanId)
+        val pin = plan?.pins?.find { it.id == albumPinId }
+        albumPlanId = null; albumPinId = null
+        if (plan == null || pin == null || uris.isEmpty()) return@registerForActivityResult
+        Toast.makeText(this, "사진 ${uris.size}장 가져오는 중…", Toast.LENGTH_SHORT).show()
+        val app = applicationContext
+        AlbumImport.importPhotos(app, plan, pin, uris) { ok, fail ->
+            val msg = "핀 ${pin.label}: 앨범 사진 ${ok}장 저장 (원본 + 좌표 사진)" + if (fail > 0) ", ${fail}장 실패" else ""
+            Toast.makeText(app, msg, Toast.LENGTH_LONG).show()
+            if (!isDestroyed) onPhotoSaved(pin)
+        }
+    }
+
+    /** 앨범(갤러리)에서 사진 여러 장 고르기 */
+    protected fun pickFromAlbum(plan: Plan, pin: Pin) {
+        albumPlanId = plan.id
+        albumPinId = pin.id
+        pickAlbum.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+    }
+
+    /** 사진 촬영 / 앨범에서 가져오기 선택 */
+    protected fun choosePhotoSource(plan: Plan, pin: Pin, title: String = "핀 ${pin.label} 사진") {
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setItems(arrayOf("사진 촬영", "앨범에서 가져오기")) { _, which ->
+                if (which == 0) capturePhoto(plan, pin) else pickFromAlbum(plan, pin)
+            }
+            .setNegativeButton("나중에", null)
+            .show()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         savedInstanceState?.let {
             camPlanId = it.getString("cam_plan")
             camPinId = it.getString("cam_pin")
+            albumPlanId = it.getString("album_plan")
+            albumPinId = it.getString("album_pin")
             pendingPlanId = it.getString("cap_plan")
             pendingPinId = it.getString("cap_pin")
             pendingPath = it.getString("cap_path")
@@ -57,6 +96,8 @@ abstract class CaptureActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
         outState.putString("cam_plan", camPlanId)
         outState.putString("cam_pin", camPinId)
+        outState.putString("album_plan", albumPlanId)
+        outState.putString("album_pin", albumPinId)
         outState.putString("cap_plan", pendingPlanId)
         outState.putString("cap_pin", pendingPinId)
         outState.putString("cap_path", pendingPath)

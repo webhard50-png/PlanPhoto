@@ -43,11 +43,28 @@
             android:textSize="15sp" />
     </FrameLayout>
 
-    <Button
-        android:id="@+id/capture_button"
-        style="@style/PrimaryButton"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:text="이 위치에서 사진 촬영" />
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/capture_button"
+            style="@style/PrimaryButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="사진 촬영" />
+
+        <Button
+            android:id="@+id/album_button"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="wrap_content"
+            android:layout_height="52dp"
+            android:layout_marginStart="8dp"
+            android:text="앨범에서 가져오기"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 </LinearLayout>

@@ -29,65 +29,161 @@
         android:textColor="#FFFFFF"
         android:textSize="14sp" />
 
-    <!-- 아래: 썸네일 · 셔터 · 완료 -->
+    <!-- 가운데: 줌 배율 표시 (확대/축소 중에만) -->
+    <TextView
+        android:id="@+id/zoom_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:alpha="0"
+        android:background="#99000000"
+        android:paddingHorizontal="18dp"
+        android:paddingVertical="8dp"
+        android:textColor="#FFFFFF"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+
+    <!-- 초점 표시 -->
+    <View
+        android:id="@+id/focus_ring"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:alpha="0"
+        android:background="@drawable/focus_ring" />
+
+    <!-- 아래: 줌 + 썸네일 · 셔터 · 앨범/완료 -->
     <LinearLayout
-        android:id="@+id/bottom_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="#99000000"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="20dp"
-        android:paddingVertical="18dp">
+        android:orientation="vertical">
 
+        <!-- 줌 배율 버튼 (0.5× 1× 2× 5× 10× 중 휴대폰이 지원하는 것만) -->
         <LinearLayout
-            android:layout_width="0dp"
+            android:id="@+id/zoom_presets"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/zoom_pill_bg"
+            android:orientation="horizontal"
+            android:padding="4dp" />
 
-            <ImageView
-                android:id="@+id/thumb"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:background="#33FFFFFF"
-                android:contentDescription="마지막 사진"
-                android:scaleType="centerCrop" />
+        <!-- 줌 슬라이더 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#66000000"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="4dp">
 
             <TextView
-                android:id="@+id/count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="－"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp" />
+
+            <SeekBar
+                android:id="@+id/zoom_slider"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:max="1000"
+                android:progressBackgroundTint="#88FFFFFF"
+                android:progressTint="#FFFFFF"
+                android:thumbTint="#FFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="＋"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/zoom_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
+                android:minWidth="52dp"
+                android:gravity="end"
+                android:text="1.0×"
                 android:textColor="#FFFFFF"
-                android:textSize="13sp" />
+                android:textSize="15sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/shutter"
-            android:layout_width="78dp"
-            android:layout_height="78dp"
-            android:background="@drawable/shutter"
-            android:contentDescription="촬영" />
-
-        <FrameLayout
-            android:layout_width="0dp"
+        <LinearLayout
+            android:id="@+id/bottom_bar"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1">
+            android:background="#99000000"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="16dp">
 
-            <Button
-                android:id="@+id/done"
-                style="@style/Widget.AppCompat.Button.Borderless"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_gravity="end|center_vertical"
-                android:text="완료"
-                android:textColor="#FFFFFF"
-                android:textSize="17sp"
-                android:textStyle="bold" />
-        </FrameLayout>
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/thumb"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="#33FFFFFF"
+                    android:contentDescription="마지막 사진"
+                    android:scaleType="centerCrop" />
+
+                <TextView
+                    android:id="@+id/count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/shutter"
+                android:layout_width="78dp"
+                android:layout_height="78dp"
+                android:background="@drawable/shutter"
+                android:contentDescription="촬영" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:orientation="vertical">
+
+                <Button
+                    android:id="@+id/album"
+                    style="@style/Widget.AppCompat.Button.Borderless"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:text="앨범"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp" />
+
+                <Button
+                    android:id="@+id/done"
+                    style="@style/Widget.AppCompat.Button.Borderless"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:text="완료"
+                    android:textColor="#FFFFFF"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 
     <!-- 카메라 권한이 없을 때 -->
