@@ -82,7 +82,7 @@ class PlanView @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = nu
         canvas.scale(scale, scale)
         canvas.drawBitmap(b, 0f, 0f, bmpPaint)
         canvas.restore()
-        val coneR = pinR * 4.5f
+        val coneR = pinR * 3.6f   // 방향 부채꼴 (20% 축소)
         for (p in pins) {
             val d = p.dir ?: continue
             val (x, y) = pinTip(p, b)

@@ -155,7 +155,7 @@ object Exporter {
                         val r0 = min(bmp.width, bmp.height) * 0.014f
                         val pins = plan.pins.filter { it.page == i }
                         for (p in pins) p.dir?.let {
-                            PinMarker.drawCone(cv, p.x * bmp.width, p.y * bmp.height, r0 * 4.5f, it)
+                            PinMarker.drawCone(cv, p.x * bmp.width, p.y * bmp.height, r0 * 3.6f, it)
                         }
                         for (p in pins) {
                             PinMarker.draw(cv, p.x * bmp.width, p.y * bmp.height, r0, p.label,

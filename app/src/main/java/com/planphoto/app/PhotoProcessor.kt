@@ -120,7 +120,7 @@ object PhotoProcessor {
             }
             cv.drawLine(l, cy, l + cropSide, cy, cross)
             cv.drawLine(cx, t, cx, t + cropSide, cross)
-            pin.dir?.let { PinMarker.drawCone(cv, cx, cy, cropSide * 0.32f, it) }
+            pin.dir?.let { PinMarker.drawCone(cv, cx, cy, cropSide * 0.256f, it) }
             PinMarker.draw(cv, cx, cy, cropSide * 0.075f, pin.label, filled = true, count = 0)
             cv.drawRect(l, t, l + cropSide, t + cropSide, Paint().apply {
                 style = Paint.Style.STROKE; color = Color.WHITE; strokeWidth = cropSide / 120f
