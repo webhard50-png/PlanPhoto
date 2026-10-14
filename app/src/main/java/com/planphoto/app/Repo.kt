@@ -52,6 +52,11 @@ data class Plan(
     val pins: MutableList<Pin> = mutableListOf(),
     /** 처음 불러온 PDF의 쪽 크기(pt). PDF를 교체해도 이 크기에 맞춰 그린다 */
     val baseSizes: MutableList<Pair<Float, Float>> = mutableListOf(),
+    /** A1 좌표 격자: 가로 칸 수(0 = 기본 26), 세로 칸 수(0 = 정사각형 칸이 되도록 자동) */
+    var gridCols: Int = 0,
+    var gridRows: Int = 0,
+    /** 도면 위에 격자 표시 */
+    var showGrid: Boolean = true,
     /** PDF 교체 횟수와 마지막 교체 시각 */
     var revision: Int = 0,
     var replacedAt: Long = 0L,
@@ -86,6 +91,9 @@ object Repo {
                         }
                     }
                     plan.revision = o.optInt("revision")
+                    plan.gridCols = o.optInt("gridCols")
+                    plan.gridRows = o.optInt("gridRows")
+                    plan.showGrid = o.optBoolean("showGrid", true)
                     plan.replacedAt = o.optLong("replacedAt")
                     val pa = o.optJSONArray("pins") ?: JSONArray()
                     for (j in 0 until pa.length()) {
@@ -140,7 +148,8 @@ object Repo {
                 JSONObject().put("id", plan.id).put("name", plan.name).put("createdAt", plan.createdAt)
                     .put("pins", pins)
                     .put("base", JSONArray(plan.baseSizes.map { JSONArray().put(it.first.toDouble()).put(it.second.toDouble()) }))
-                    .put("revision", plan.revision).put("replacedAt", plan.replacedAt)
+                    .put("revision", plan.revision)
+                    .put("gridCols", plan.gridCols).put("gridRows", plan.gridRows).put("showGrid", plan.showGrid).put("replacedAt", plan.replacedAt)
             )
         }
         val tmp = File(c.filesDir, "data.json.tmp")
@@ -164,8 +173,8 @@ object Repo {
 
     /**
      * 핀·날짜별 폴더 안에 원본 파일 경로를 새로 만든다.
-     * 파일 이름 = 좌표, 날짜, 시간 순: X0004520_Y0012300_20261010_140732_원본.jpg
-     * (좌표는 도면 mm 정수 7자리로 맞춰 이름순 정렬 = 좌표→날짜→시간 순)
+     * 파일 이름 = 좌표, 날짜, 시간 순: B10_20261014_145012_원본.jpg
+     * (행 번호 자릿수를 맞춰 B02, B10 … 이름순 정렬 = 좌표→날짜→시간 순)
      */
     fun newOriginalPath(c: Context, plan: Plan, pin: Pin, time: Long, coord: Coord): String {
         val day = dayFormat.format(Date(time))

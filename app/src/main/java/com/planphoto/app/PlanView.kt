@@ -36,6 +36,10 @@ class PlanView @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = nu
     var pins: List<Pin> = emptyList()
         set(value) { field = value; invalidate() }
 
+    /** A1 좌표 격자 (null 이면 표시하지 않음) */
+    var cellDims: CellGrid.Dims? = null
+        set(value) { field = value; invalidate() }
+
     /** 위치 이동 중인 핀 (파란 테두리) */
     var highlightPinId: String? = null
         set(value) { field = value; invalidate() }
@@ -82,6 +86,7 @@ class PlanView @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = nu
         canvas.scale(scale, scale)
         canvas.drawBitmap(b, 0f, 0f, bmpPaint)
         canvas.restore()
+        cellDims?.let { drawCells(canvas, b, it) }
         val coneR = pinR * 3.6f   // 방향 부채꼴 (20% 축소)
         for (p in pins) {
             val d = p.dir ?: continue
@@ -92,6 +97,51 @@ class PlanView @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = nu
             val (x, y) = pinTip(p, b)
             PinMarker.draw(canvas, x, y, pinR, p.label, filled = p.photos.isNotEmpty(), count = p.photos.size,
                 highlight = p.id == highlightPinId)
+        }
+    }
+
+    private val gridLine = Paint().apply { color = 0x402F80ED; strokeWidth = 1f }
+    private val labelBg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xD91F2328.toInt() }
+    private val labelText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFFFFFFF.toInt(); textAlign = Paint.Align.CENTER
+        typeface = android.graphics.Typeface.DEFAULT_BOLD; textSize = 11f * density
+    }
+
+    /** 격자선과 칸 이름. 이름은 화면 위쪽(A, B, C…)과 왼쪽(1, 2, 3…)에 붙여 확대해도 보이게 한다 */
+    private fun drawCells(canvas: Canvas, b: Bitmap, d: CellGrid.Dims) {
+        val left = tx
+        val top = ty
+        val w = b.width * scale
+        val h = b.height * scale
+        val cw = w / d.cols
+        val ch = h / d.rows
+        // 칸이 너무 작으면 몇 칸 걸러 표시
+        val minPx = 22 * density
+        val stepC = kotlin.math.max(1, kotlin.math.ceil(minPx / cw).toInt())
+        val stepR = kotlin.math.max(1, kotlin.math.ceil(minPx / ch).toInt())
+        if (cw >= 4 * density) for (i in 1 until d.cols) {
+            val x = left + i * cw
+            if (x in 0f..width.toFloat()) canvas.drawLine(x, top, x, top + h, gridLine)
+        }
+        if (ch >= 4 * density) for (j in 1 until d.rows) {
+            val y = top + j * ch
+            if (y in 0f..height.toFloat()) canvas.drawLine(left, y, left + w, y, gridLine)
+        }
+        val band = 18 * density
+        val labelY = top.coerceIn(0f, height - band)          // 위쪽 띠
+        val labelX = left.coerceIn(0f, width - band * 1.6f)  // 왼쪽 띠
+        canvas.drawRect(kotlin.math.max(left, 0f), labelY, kotlin.math.min(left + w, width.toFloat()), labelY + band, labelBg)
+        canvas.drawRect(labelX, kotlin.math.max(top, 0f), labelX + band * 1.6f, kotlin.math.min(top + h, height.toFloat()), labelBg)
+        val base = -(labelText.ascent() + labelText.descent()) / 2f
+        for (i in 0 until d.cols step stepC) {
+            val cx = left + (i + 0.5f) * cw
+            if (cx < labelX + band * 1.6f || cx > width) continue
+            canvas.drawText(CellGrid.colName(i), cx, labelY + band / 2f + base, labelText)
+        }
+        for (j in 0 until d.rows step stepR) {
+            val cy = top + (j + 0.5f) * ch
+            if (cy < labelY + band || cy > height) continue
+            canvas.drawText((j + 1).toString(), labelX + band * 0.8f, cy + base, labelText)
         }
     }
 

@@ -20,20 +20,22 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * 핀 좌표. 원점은 도면 좌하단, X는 오른쪽, Y는 위쪽 (CAD 방식).
- * paper = 도면 용지 위 mm.
+ * 핀 좌표.
+ *  cell     = A1, B10 방식 격자 좌표 (왼쪽 위가 A1) — 화면·사진·파일 이름의 대표 표기
+ *  paperX/Y = 도면 용지 위 mm (원점 좌하단) — 참고용
  */
-data class Coord(val paperX: Float, val paperY: Float) {
+data class Coord(val paperX: Float, val paperY: Float, val cell: String = "", val cellFile: String = "") {
     val nameX get() = paperX
     val nameY get() = paperY
 
     fun paperText() = String.format(Locale.KOREA, "X %.1f mm   Y %.1f mm", paperX, paperY)
 
-    /** 화면·사진 표기 */
-    fun mainText() = "도면 " + paperText()
+    /** 화면·사진 표기: "B10" */
+    fun mainText() = if (cell.isNotEmpty()) cell else "도면 " + paperText()
 
-    /** 파일 이름 앞부분 */
+    /** 파일 이름 앞부분: "B10" (자릿수 맞춤) */
     fun fileToken(): String {
+        if (cellFile.isNotEmpty()) return cellFile
         val x = Math.round(nameX).coerceIn(0, 9_999_999)
         val y = Math.round(nameY).coerceIn(0, 9_999_999)
         return "X%07d_Y%07d".format(x, y)
@@ -49,7 +51,11 @@ object PhotoProcessor {
         val base = plan.baseSizes.getOrNull(pin.page)
             ?: PdfPages.withPage(c, plan, pin.page) { _, fit, _ -> Pair(fit.baseW, fit.baseH) }
             ?: Pair(0f, 0f)
-        return Coord(pin.x * base.first * PT_TO_MM, (1f - pin.y) * base.second * PT_TO_MM)
+        val d = CellGrid.dims(plan, base.first, base.second)
+        return Coord(
+            pin.x * base.first * PT_TO_MM, (1f - pin.y) * base.second * PT_TO_MM,
+            CellGrid.label(pin.x, pin.y, d), CellGrid.fileLabel(pin.x, pin.y, d)
+        )
     }
 
     /** 핀 주변 도면을 잘라 정사각형 비트맵으로 (핀이 가운데) */
@@ -63,6 +69,19 @@ object PhotoProcessor {
             bmp.eraseColor(Color.WHITE)
             page.render(bmp, null, fit.matrix(k, -(cx - side / 2f) * k, -(cy - side / 2f) * k),
                 PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+            // A1 격자선과 핀이 있는 칸 강조
+            val d = CellGrid.dims(plan, fit.baseW, fit.baseH)
+            val cv = Canvas(bmp)
+            val ox = -(cx - side / 2f) * k
+            val oy = -(cy - side / 2f) * k
+            val cw = fit.baseW / d.cols * k
+            val chh = fit.baseH / d.rows * k
+            val (ci, ri) = CellGrid.cellIndex(pin.x, pin.y, d)
+            cv.drawRect(ox + ci * cw, oy + ri * chh, ox + (ci + 1) * cw, oy + (ri + 1) * chh,
+                Paint().apply { color = Color.argb(40, 0x2F, 0x80, 0xED) })
+            val gl = Paint().apply { color = Color.argb(90, 0x2F, 0x80, 0xED); strokeWidth = sizePx / 400f }
+            for (i in 0..d.cols) { val x = ox + i * cw; if (x in 0f..sizePx.toFloat()) cv.drawLine(x, 0f, x, sizePx.toFloat(), gl) }
+            for (j in 0..d.rows) { val y = oy + j * chh; if (y in 0f..sizePx.toFloat()) cv.drawLine(0f, y, sizePx.toFloat(), y, gl) }
             bmp
         }
 
@@ -132,7 +151,8 @@ object PhotoProcessor {
         val avail = w - textLeft - pad
         val lines = mutableListOf<Triple<String, Int, Float>>() // 내용, 색, 상대 크기
         lines += Triple("핀 ${pin.label}", Color.rgb(0xF2, 0x6B, 0x1D), 1.25f)
-        lines += Triple("도면 " + coord.paperText(), Color.WHITE, 1.1f)
+        lines += Triple("좌표 " + coord.mainText(), Color.WHITE, 1.25f)
+        lines += Triple("도면 " + coord.paperText() + " (좌하단 기준)", Color.rgb(0xC9, 0xCE, 0xD4), 0.7f)
         pin.dir?.let { lines += Triple("방향 " + PinMarker.dirText(it) + " (도면 위쪽 기준)", Color.WHITE, 0.9f) }
         lines += Triple(Repo.timeFormat.format(Date(time)), Color.WHITE, 1f)
         lines += Triple("${plan.name} · ${pin.page + 1}쪽 · 원점 도면 좌하단", Color.rgb(0xA3, 0xAA, 0xB3), 0.72f)

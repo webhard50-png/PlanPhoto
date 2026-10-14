@@ -128,6 +128,7 @@ class PlanActivity : CaptureActivity(), PlanView.Listener {
 
     private fun refreshPins() {
         planView.pins = plan.pins.filter { it.page == pageIndex }
+        planView.cellDims = if (plan.showGrid && planView.bitmap != null) pageDims() else null
         updateUi()
     }
 
@@ -272,6 +273,8 @@ class PlanActivity : CaptureActivity(), PlanView.Listener {
     // --- 메뉴 ---
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menu.add(0, 6, 0, "좌표 격자 설정 (A1·B10)")
+        menu.add(0, 7, 0, "격자 보기 켜기/끄기")
         menu.add(0, 5, 0, "평면도 PDF 교체")
         menu.add(0, 4, 0, "PDF + 사진 내보내기")
         menu.add(0, 2, 1, "사진 전체 공유")
@@ -283,10 +286,66 @@ class PlanActivity : CaptureActivity(), PlanView.Listener {
         when (item.itemId) {
             android.R.id.home -> { finish(); return true }
             4 -> { Exporter.start(this, plan); return true }
+            6 -> { gridDialog(); return true }
+            7 -> { plan.showGrid = !plan.showGrid; Repo.save(this); refreshPins(); return true }
             5 -> { PdfReplace.confirm(this, plan) { pickReplace.launch(arrayOf("application/pdf")) }; return true }
             2 -> { Repo.sharePhotos(this, plan.pins.flatMap { it.photos }); return true }
             3 -> { planView.bitmap = planView.bitmap; return true }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    /** 현재 쪽의 격자 칸 수 (좌표 계산과 같은 기준 크기 사용) */
+    private fun pageDims(): CellGrid.Dims {
+        val base = plan.baseSizes.getOrNull(pageIndex)
+        val b = planView.bitmap
+        return CellGrid.dims(plan, base?.first ?: b?.width?.toFloat() ?: 1f, base?.second ?: b?.height?.toFloat() ?: 1f)
+    }
+
+    /** A1 좌표 격자 칸 수 설정 */
+    private fun gridDialog() {
+        val cur = pageDims()
+        val pad = (20 * resources.displayMetrics.density).toInt()
+        val box = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(pad, pad / 2, pad, 0)
+        }
+        fun label(t: String) = TextView(this).apply { text = t; setPadding(0, pad / 2, 0, 0) }
+        val colsIn = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            setText(cur.cols.toString())
+        }
+        val rowsIn = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            setHint("비우면 자동 (정사각형 칸)")
+            if (plan.gridRows > 0) setText(plan.gridRows.toString())
+        }
+        box.addView(label("가로 칸 수 (A, B, C … / 26 = A~Z)"))
+        box.addView(colsIn)
+        box.addView(label("세로 칸 수 (1, 2, 3 …)"))
+        box.addView(rowsIn)
+        box.addView(TextView(this).apply {
+            text = "지금: ${CellGrid.colName(0)}1 ~ ${CellGrid.colName(cur.cols - 1)}${cur.rows} (왼쪽 위가 A1)\n바꾸면 이후 사진의 좌표와 파일 이름에 적용됩니다."
+            setPadding(0, pad / 2, 0, 0)
+            textSize = 13f
+        })
+        AlertDialog.Builder(this)
+            .setTitle("좌표 격자 (A1 · B10)")
+            .setView(box)
+            .setPositiveButton("저장") { _, _ ->
+                plan.gridCols = colsIn.text.toString().toIntOrNull()?.coerceIn(1, 702) ?: 0
+                plan.gridRows = rowsIn.text.toString().toIntOrNull()?.coerceIn(1, 999) ?: 0
+                plan.showGrid = true
+                Repo.save(this)
+                refreshPins()
+                val d = pageDims()
+                Toast.makeText(this, "격자 A1 ~ ${CellGrid.colName(d.cols - 1)}${d.rows}", Toast.LENGTH_SHORT).show()
+            }
+            .setNeutralButton("기본값") { _, _ ->
+                plan.gridCols = 0; plan.gridRows = 0; plan.showGrid = true
+                Repo.save(this); refreshPins()
+            }
+            .setNegativeButton("취소", null)
+            .show()
     }
 }

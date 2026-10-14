@@ -98,12 +98,12 @@ object Exporter {
             put("$base.pdf", pdf)
             put("${base}_핀표시.pdf", marked)
 
-            val csv = StringBuilder("﻿핀,쪽,X(mm),Y(mm),방향,촬영일시,좌표 사진,원본 사진\n")
+            val csv = StringBuilder("﻿핀,쪽,좌표,X(mm),Y(mm),방향,촬영일시,좌표 사진,원본 사진\n")
             for (pin in plan.pins) {
                 val coord = PhotoProcessor.coordOf(c, plan, pin)
                 val dir0 = pin.dir?.let { "${Math.round(it)}°" } ?: ""
                 if (pin.photos.isEmpty()) {
-                    csv.append(row(pin.label, pin.page + 1, coord.paperX, coord.paperY, dir0, "", "", ""))
+                    csv.append(row(pin.label, pin.page + 1, coord.cell, coord.paperX, coord.paperY, dir0, "", "", ""))
                 }
                 for (ph in pin.photos.sortedBy { it.takenAt }) {
                     val day = Repo.dayFormat.format(Date(ph.takenAt))
@@ -114,7 +114,7 @@ object Exporter {
                     if (ph.original != ph.marked) put("$folder/${origF.name}", origF)
                     csv.append(
                         row(
-                            pin.label, pin.page + 1, ph.xMm, ph.yMm, dir0,
+                            pin.label, pin.page + 1, ph.label.substringBefore(" ·").ifEmpty { coord.cell }, ph.xMm, ph.yMm, dir0,
                             Repo.timeFormat.format(Date(ph.takenAt)),
                             "$folder/${markedF.name}",
                             if (ph.original != ph.marked) "$folder/${origF.name}" else ""
@@ -130,9 +130,9 @@ object Exporter {
         return zipFile
     }
 
-    private fun row(label: String, page: Int, x: Float, y: Float, dir: String, time: String, m: String, o: String): String {
+    private fun row(label: String, page: Int, cell: String, x: Float, y: Float, dir: String, time: String, m: String, o: String): String {
         fun q(s: String) = "\"" + s.replace("\"", "\"\"") + "\""
-        return listOf(q(label), page.toString(), String.format(Locale.US, "%.1f", x), String.format(Locale.US, "%.1f", y),
+        return listOf(q(label), page.toString(), q(cell), String.format(Locale.US, "%.1f", x), String.format(Locale.US, "%.1f", y),
             q(dir), q(time), q(m), q(o)).joinToString(",") + "\n"
     }
 
@@ -153,6 +153,8 @@ object Exporter {
 
                         val cv = android.graphics.Canvas(bmp)
                         val r0 = min(bmp.width, bmp.height) * 0.014f
+                        // A1 격자와 가장자리 칸 이름
+                        if (plan.showGrid) drawCells(cv, bmp.width.toFloat(), bmp.height.toFloat(), CellGrid.dims(plan, fit.baseW, fit.baseH))
                         val pins = plan.pins.filter { it.page == i }
                         for (p in pins) p.dir?.let {
                             PinMarker.drawCone(cv, p.x * bmp.width, p.y * bmp.height, r0 * 3.6f, it)
@@ -174,6 +176,31 @@ object Exporter {
             out.outputStream().use { doc.writeTo(it) }
         } finally {
             doc.close()
+        }
+    }
+
+    private fun drawCells(cv: android.graphics.Canvas, w: Float, h: Float, d: CellGrid.Dims) {
+        val cw = w / d.cols
+        val ch = h / d.rows
+        val line = Paint().apply { color = Color.argb(70, 0x2F, 0x80, 0xED); strokeWidth = max(1f, min(w, h) / 1500f) }
+        for (i in 1 until d.cols) cv.drawLine(i * cw, 0f, i * cw, h, line)
+        for (j in 1 until d.rows) cv.drawLine(0f, j * ch, w, j * ch, line)
+        val t = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(200, 0x2F, 0x80, 0xED); textAlign = Paint.Align.CENTER
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            textSize = min(min(cw, ch) * 0.45f, min(w, h) * 0.018f)
+        }
+        val base = -(t.ascent() + t.descent()) / 2f
+        val m = t.textSize * 0.9f
+        for (i in 0 until d.cols) {
+            val x = (i + 0.5f) * cw
+            cv.drawText(CellGrid.colName(i), x, m + base, t)
+            cv.drawText(CellGrid.colName(i), x, h - m + base, t)
+        }
+        for (j in 0 until d.rows) {
+            val y = (j + 0.5f) * ch
+            cv.drawText((j + 1).toString(), m * 1.2f, y + base, t)
+            cv.drawText((j + 1).toString(), w - m * 1.2f, y + base, t)
         }
     }
 
